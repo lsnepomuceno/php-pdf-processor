@@ -9,6 +9,11 @@ use Stringable;
 
 class BasePDFValue implements ArrayAccess, Stringable
 {
+    protected const BLACKLIST = [
+        '*'     => ['Parent'], // Field "Parent" for any type of object
+        'Annot' => ['P'] // Field "P" for nodes of type "Annot"
+    ];
+
     public function __construct(protected mixed $value)
     {
     }
@@ -71,6 +76,45 @@ class BasePDFValue implements ArrayAccess, Stringable
         $this->value = $value;
     }
 
+    public function getKeys(): array
+    {
+        return array_keys($this->value);
+    }
+
+    public static function referencesInObject(BasePDFValue $object, mixed $oid = false): array
+    {
+        $type       = $object['Type'];
+        $type       = $type ? $type->val() : '';
+        $references = [];
+
+        foreach ($object->getKeys() as $key) {
+
+            if (in_array($key, self::BLACKLIST['*']) ||
+                (array_key_exists($type, self::BLACKLIST) && in_array($key, self::BLACKLIST[$type]))
+            ) {
+                continue;
+            }
+
+            if (is_a($object[$key], BasePDFValue::class)) {
+                $refObjects = self::referencesInObject($object[$key]);
+            } else {
+                $refObjects = $object[$key]->getObjectReferenced();
+
+                if ($refObjects === false) {
+                    continue;
+                }
+
+                if (!is_array($refObjects)) {
+                    $refObjects = [$refObjects];
+                }
+            }
+
+            array_push($references, ...$refObjects);
+        }
+
+        return $references;
+    }
+
     /*
     public function push(): bool
     {
@@ -85,12 +129,6 @@ class BasePDFValue implements ArrayAccess, Stringable
     }
 
     public function getObjectReferenced(): bool
-    {
-        // TODO: Incluir lógica
-        return false;
-    }
-
-    public function getKeys(): bool
     {
         // TODO: Incluir lógica
         return false;
