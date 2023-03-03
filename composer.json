@@ -44,7 +44,12 @@
     "autoload": {
         "psr-4": {
             "LSNepomuceno\\PhpPdfProcessor\\": "src/"
-        }
+        },
+        "files": [
+            "src/Helpers/helpers.php",
+            "src/Helpers/fpdfhelpers.php",
+            "src/Helpers/mime.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
